@@ -1,33 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D3 Map with Image</title>
+    <title>D3 VAST Challenge</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
+        h1.chart-title {
+            font-family: sans-serif;
+            font-size: 20px;
+            font-weight: medium;
+            margin-bottom: 15px;
+        }
+
         circle {
-            fill: red; 
             stroke: black;
             stroke-width: 2;
         }
 
         .tooltip {
-            background-color: yellow;
+            background-color: #ffffcc;
             padding: 5px;
             border-radius: 5px;
             font-family: sans-serif;
             font-size: 12px;
             font-weight: bold;
         }
+
+        .legend {
+            font-family: sans-serif;
+            font-size: 12px;
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: black;
+            display: flex;
+        }
+
+        .legendTitle {
+            font-family: sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: black;
+        }
     </style>
 </head>
-<body>
 
+<body>
+    <h1 class="chart-title" id="chart-title">Methylosmoline Measurements in the Boonsong Lekagul Waterways</h1>
     <svg width="800" height="600" id="map-svg"></svg>
+    <div id="legend" class="legend">
+        <div class="legendTitle">Legend - Value</div>
+    </div>
+    <label for="dateSlider">Select Date:</label>
+    <input type="range" id="dateSlider" min="1388534400000" max="1483142400000" step="1" value="1388534400000">
 
     <script>
         const svg = d3.select("#map-svg");
+        const legend = d3.select("#legend");
         const width = 800;
         const height = 600;
 
@@ -37,41 +69,59 @@
             .attr("height", height);
 
         const fixedLocations = [
-            { name: "Boonsri", x: 428, y: 135 },
+            { name: "Boonsri", x: 426, y: 129 },
             { name: "Kohsoom", x: 550, y: 204 },
-            { name: "Busarakhan", x: 548, y: 265 },
-            { name: "Chai", x: 475, y: 300 },
-            { name: "Kannika", x: 500, y: 436 },
+            { name: "Busarakhan", x: 545, y: 259 },
+            { name: "Chai", x: 472, y: 297 },
+            { name: "Kannika", x: 500, y: 430 },
             { name: "Achara", x: 357, y: 220 },
             { name: "Somchair", x: 305, y: 290 },
-            { name: "Sakda", x: 428, y: 528 },
+            { name: "Sakda", x: 424, y: 518 },
             { name: "Tansanee", x: 305, y: 420 },
             { name: "Decha", x: 200, y: 365 }
         ];
 
         // Function to update circles based on data
         function updateCircles(data) {
+            const maxMethylosmoline = d3.max(data, d => d.methylosmolineSum);
+            // const maxMethylosmoline = 10000; // testing that the legend works
+
+            // Create a scale
+            // Source: https://observablehq.com/@d3/d3-scalelinear
+            const colorScale = d3.scaleLinear()
+                .domain([0, maxMethylosmoline])
+                .range(["orange", "purple"]);
+
             const circles = svg.selectAll("circle")
                 .data(data)
                 .enter().append("circle")
                 .attr("cx", d => d.x)
                 .attr("cy", d => d.y)
+                //.attr("r", 10) // Fixed radius
                 .attr("r", d => calculateRadius(d.methylosmolineSum)) // Use the calculated radius based on the sum of Methylosmoline
+                .attr("fill", d => colorScale(d.methylosmolineSum)) // Using the color scale to set the fill color
+                .attr("fill-opacity", 100) // Setting the Transparency -> https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/fill-opacity
                 .on("mouseover", function (event, d) {
-                    const tooltip = svg.append("g")
-                        .attr("class", "tooltip");
+                    const [X, Y] = d3.pointer(event); // const [x, y] = d3.pointer(event);  , Source -> https://d3js.org/d3-selection/events
+                    const tooltip = svg.append("g").attr("class", "tooltip"); // https://observablehq.com/@john-guerra/how-to-add-a-tooltip-in-d3
+                    const text = `${d.name}: Methylosmoline Sum : ${d.methylosmolineSum.toFixed(3)}`;
+                    const textWidth = text.length * 6;
+                    const tooltipWidth = textWidth + 30;
+                    const tooltipHeight = 30;
+                    const tooltipX = Math.min(X + 10, width - tooltipWidth);
+                    const tooltipY = Math.min(Y - 20, height - tooltipHeight);
 
                     tooltip.append("rect")
-                        .attr("x", d.x + 10)
-                        .attr("y", d.y - 20)
-                        .attr("width", 80)
-                        .attr("height", 30)
-                        .attr("fill", "yellow");
+                        .attr("x", tooltipX)
+                        .attr("y", tooltipY)
+                        .attr("width", tooltipWidth)
+                        .attr("height", tooltipHeight)
+                        .attr("fill", "#ffffcc");
 
                     tooltip.append("text")
-                        .attr("x", d.x + 20)
-                        .attr("y", d.y - 5)
-                        .text(`${d.name}: Methylosmoline Sum - ${d.methylosmolineSum}`)
+                        .attr("x", tooltipX + 10)
+                        .attr("y", tooltipY + 15)
+                        .text(text)
                         .attr("font-family", "sans-serif")
                         .attr("font-size", "12px")
                         .attr("font-weight", "bold");
@@ -79,6 +129,30 @@
                 .on("mouseout", function () {
                     svg.selectAll(".tooltip").remove();
                 });
+
+            // Creating a dynamic legend
+            const legendTicks = 10; // The number of "ticks"
+            const legendData = Array.from({ length: legendTicks + 1 }, (_, i) => (maxMethylosmoline / legendTicks) * i);
+
+            legend.selectAll("div.legendValue").remove();
+
+            const legendItems = legend.selectAll("div.legendValue")
+                .data(legendData)
+                .enter().append("div")
+                .attr("class", "legendValue");
+
+            legendItems.append("span")
+                .html(d => d.toFixed(3))
+                .style("width", "60px")
+                .style("text-align", "center")
+                .style("display", "inline-block");
+
+            legendItems.append("div")
+                .style("background-color", d => colorScale(d))
+                .style("width", "30px")
+                .style("height", "20px")
+                .style("margin-right", "5px")
+                .style("display", "inline-block");
         }
 
         // Calculate the radius based on the Methylosmoline sum
@@ -91,10 +165,10 @@
         const csvFileName = "./Cleaned-Boonsong-Lekagul-waterways-readings.csv";
 
         // Load data from CSV file
-        d3.csv(csvFileName).then(function(data) {
+        d3.csv(csvFileName).then(function (data) {
             // For each fixed location, find the corresponding data point in the CSV file
             // Calculate the sum of Methylosmoline for each location
-	    // TODO will somehow need to filter this for month/year based off the play animation slider to create
+            // TODO will somehow need to filter this for month/year based off the play animation slider to create
             const updatedData = fixedLocations.map(location => {
                 const correspondingData = data.filter(d => d.location === location.name && d.measure === "Methylosmoline");
                 const methylosmolineSum = correspondingData.reduce((sum, d) => sum + parseFloat(d.value), 0);
@@ -108,10 +182,8 @@
             updateCircles(updatedData);
         });
 
-	// TODO slider creation, animation, and data filtering. 
+            // TODO slider creation, animation, and data filtering.
     </script>
-
 </body>
+
 </html>
-
-
