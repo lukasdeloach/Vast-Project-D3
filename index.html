@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D3 VAST Challenge</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/d3-simple-slider"></script>
     <style>
         h1.chart-title {
             font-family: sans-serif;
@@ -45,6 +46,14 @@
             margin-bottom: 5px;
             color: black;
         }
+
+        .slider-container {
+            margin-bottom: 40px; /* Adjust the margin as needed */
+            padding: 5px;
+            position: absolute;
+            bottom: 0;
+            left: 10px;
+        }
     </style>
 </head>
 
@@ -54,8 +63,7 @@
     <div id="legend" class="legend">
         <div class="legendTitle">Legend - Value</div>
     </div>
-    <label for="dateSlider">Select Date:</label>
-    <input type="range" id="dateSlider" min="1388534400000" max="1483142400000" step="1" value="1388534400000">
+    <div class="slider-container" id="slider-time"></div>
 
     <script>
         const svg = d3.select("#map-svg");
@@ -84,26 +92,38 @@
         // Function to update circles based on data
         function updateCircles(data) {
             const maxMethylosmoline = d3.max(data, d => d.methylosmolineSum);
-            // const maxMethylosmoline = 10000; // testing that the legend works
 
             // Create a scale
-            // Source: https://observablehq.com/@d3/d3-scalelinear
             const colorScale = d3.scaleLinear()
                 .domain([0, maxMethylosmoline])
-                .range(["orange", "purple"]);
+                .range(["#fee5d9 ", "#db1c1c"]);
 
+            // Select existing circles and bind the updated data
             const circles = svg.selectAll("circle")
-                .data(data)
-                .enter().append("circle")
+                .data(data);
+
+            // Update existing circles
+            circles
                 .attr("cx", d => d.x)
                 .attr("cy", d => d.y)
-                //.attr("r", 10) // Fixed radius
-                .attr("r", d => calculateRadius(d.methylosmolineSum)) // Use the calculated radius based on the sum of Methylosmoline
-                .attr("fill", d => colorScale(d.methylosmolineSum)) // Using the color scale to set the fill color
-                .attr("fill-opacity", 100) // Setting the Transparency -> https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/fill-opacity
+                .attr("r", d => calculateRadius(d.methylosmolineSum))
+                .attr("fill", d => colorScale(d.methylosmolineSum));
+
+            // Remove circles that don't have corresponding data
+            circles.exit().remove();
+
+            // Append new circles for new data points
+            circles.enter().append("circle")
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y)
+                .attr("r", d => calculateRadius(d.methylosmolineSum))
+                .attr("fill", d => colorScale(d.methylosmolineSum))
+                .attr("fill-opacity", 100)
                 .on("mouseover", function (event, d) {
-                    const [X, Y] = d3.pointer(event); // const [x, y] = d3.pointer(event);  , Source -> https://d3js.org/d3-selection/events
-                    const tooltip = svg.append("g").attr("class", "tooltip"); // https://observablehq.com/@john-guerra/how-to-add-a-tooltip-in-d3
+                    const [X, Y] = d3.pointer(event);
+                    const tooltip = svg.append("g").attr("class", "tooltip");
+
+                    // Tooltip positioning
                     const text = `${d.name}: Methylosmoline Sum : ${d.methylosmolineSum.toFixed(3)}`;
                     const textWidth = text.length * 6;
                     const tooltipWidth = textWidth + 30;
@@ -131,7 +151,7 @@
                 });
 
             // Creating a dynamic legend
-            const legendTicks = 10; // The number of "ticks"
+            const legendTicks = 10;
             const legendData = Array.from({ length: legendTicks + 1 }, (_, i) => (maxMethylosmoline / legendTicks) * i);
 
             legend.selectAll("div.legendValue").remove();
@@ -157,8 +177,7 @@
 
         // Calculate the radius based on the Methylosmoline sum
         function calculateRadius(methylosmolineSum) {
-            // Adjust the scaling factor to make the circles bigger
-            const scaleFactor = 0.4;
+            const scaleFactor = 0.6;
             return Math.sqrt(methylosmolineSum) * scaleFactor;
         }
 
@@ -166,23 +185,48 @@
 
         // Load data from CSV file
         d3.csv(csvFileName).then(function (data) {
-            // For each fixed location, find the corresponding data point in the CSV file
-            // Calculate the sum of Methylosmoline for each location
-            // TODO will somehow need to filter this for month/year based off the play animation slider to create
-            const updatedData = fixedLocations.map(location => {
-                const correspondingData = data.filter(d => d.location === location.name && d.measure === "Methylosmoline");
-                const methylosmolineSum = correspondingData.reduce((sum, d) => sum + parseFloat(d.value), 0);
-                return {
-                    ...location,
-                    methylosmolineSum
-                };
-            });
+            const methylosmolineDates = data
+                .filter(d => d.measure === "Methylosmoline")
+                .map(d => new Date(d['sample date']));
+            let currentDate = new Date(d3.min(methylosmolineDates));
 
-            // Update circles based on the Methylosmoline data
-            updateCircles(updatedData);
+            function filterDataByDate(date) {
+                return fixedLocations.map(location => {
+                    const correspondingData = data.filter(d => d.location === location.name && new Date(d['sample date']) <= date && d.measure === "Methylosmoline");
+                    const methylosmolineSum = correspondingData.reduce((sum, d) => sum + parseFloat(d.value), 0);
+                    return {
+                        ...location,
+                        methylosmolineSum
+                    };
+                });
+            }
+
+            updateCircles(filterDataByDate(currentDate));
+
+            const sliderTime = d3
+                .sliderBottom()
+                .min(d3.min(methylosmolineDates))
+                .max(d3.max(methylosmolineDates))
+                .width(500)
+                .tickFormat(d3.timeFormat('%b %Y'))
+                .ticks(10)
+                .default(currentDate)
+                .on('onchange', val => {
+                    currentDate = new Date(val);
+                    currentDate.setDate(1);
+                    updateCircles(filterDataByDate(currentDate));
+                });
+
+            const gTime = d3
+                .select('div#slider-time')
+                .append('svg')
+                .attr('width', 600)
+                .attr('height', 100)
+                .append('g')
+                .attr('transform', 'translate(30,30)');
+
+            gTime.call(sliderTime);
         });
-
-            // TODO slider creation, animation, and data filtering.
     </script>
 </body>
 
