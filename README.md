@@ -14,7 +14,7 @@ Check your version of python - you could have python or python3
 
 
 Now that you have python to run this enter in the root folder:
- python3 -m http.serve
+ python3 -m http.server
 
 or python -m SimpleHTTPServer
 
