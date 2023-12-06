@@ -7,6 +7,24 @@
     <title>D3 Map with Image</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        svg {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
         circle {
             fill: red;
             stroke: black;
@@ -21,6 +39,24 @@
             font-size: 12px;
             font-weight: bold;
         }
+
+        #slider-time {
+            margin-top: 20px;
+            width: 500px;
+        }
+
+        #play-button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #date-display {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -28,7 +64,10 @@
 
     <svg width="800" height="600" id="map-svg"></svg>
     <script src="https://unpkg.com/d3-simple-slider"></script>
+    <p id="date-display"></p>
     <div id="slider-time"></div>
+    <button id="play-button">Play</button>
+    
 
     <script>
         const svg = d3.select("#map-svg");
@@ -158,12 +197,35 @@
                 .attr('transform', 'translate(30,30)');
 
             gTime.call(sliderTime);
+            const playButton = d3.select("#play-button");
+            let playing = false;
+            let interval;
+
+            playButton.on("click", () => {
+                playing = !playing;
+
+                if (playing) {
+                    interval = setInterval(() => {
+                        currentDate.setMonth(currentDate.getMonth() + 1);
+                        currentDate.setDate(1);
+
+                        if (currentDate > d3.max(methylosmolineDates)) {
+                            playing = false;
+                            clearInterval(interval);
+                        }
+                        sliderTime.value(currentDate);
+                        updateCircles(filterDataByDate(currentDate));
+                        document.getElementById('date-display').textContent = d3.timeFormat('%b %Y')(currentDate);
+                    }, 500);
+                    
+                    
+                } else {
+                    clearInterval(interval);
+                }
+            });
+            
         });
-
-
-        // TODO slider creation, animation, and data filtering. 
+       
     </script>
-
 </body>
-
 </html>
