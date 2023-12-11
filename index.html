@@ -19,12 +19,13 @@
             height: 100vh;
             background-color: #f0f0f0;
         }
+
         h1.chart-title {
             font-family: sans-serif;
             font-size: 20px;
             font-weight: medium;
             margin-bottom: 15px;
-            text-align: center; /* Center the text */
+            text-align: center; 
         }
 
         svg {
@@ -71,21 +72,21 @@
         
         .legendValue span {
             display: inline-block;
-            margin-right: 15px; /* Adjust the margin to add spacing between value and color */
+            margin-right: 15px; 
         }
         
         #slider-play-container {
             display: flex;
             flex-direction: row;
             align-items: center;
-            margin-top: 15px; /* Adjust the top margin as needed */
-            margin-bottom: 10px; /* Adjust the bottom margin as needed */
+            margin-top: 15px; 
+            margin-bottom: 10px;
         }
 
         #slider-time {
             flex-grow: 1;
             width: 70%;
-            margin: 0 auto; /* Center the slider */
+            margin: 0 auto; 
         }
 
         #play-button {
@@ -103,6 +104,19 @@
             height: 1000px;
             object-fit: contain;
         }
+
+        #chemicalStyle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            color: #333;
+            outline: none;
+        }
     </style>
 </head>
 
@@ -112,6 +126,20 @@
     <div id="legend" class="legend">
         <div class="legendTitle">Legend - Value</div>
     </div>
+
+    <div id="chemicalStyle">
+        <lable>Selected Chemical:</lable>
+        <select id="chemical-dropdown">
+
+            <option value = "Methylosmoline">Methylosmoline</option>
+            <option value = "Iron">Iron</option>
+            <option value = "Arsenic">Arsenic</option>
+            <option value = "Anionic Active Surfactants">Anionic Active Surfactants</option>
+            <option value = "Ammonium">Ammonium</option>
+            <option value = "Lead">Lead</option>
+        </select>
+    </div>
+
     <p id="date-display"></p>
    <div id="slider-play-container" style="margin-top: 5px;">
     <div id="slider-time"></div>
@@ -134,20 +162,22 @@
             { name: "Busarakhan", x: 574, y: 248 },
             { name: "Chai", x: 485, y: 291 },
             { name: "Kannika", x: 519, y: 455 },
-            { name: "Achara", x: 345, y: 190 },
+            { name: "Achara", x: 345, y: 190 }, 
             { name: "Somchair", x: 283, y: 276 },
             { name: "Sakda", x: 429, y: 563 },
-            { name: "Tansanee", x: 279, y: 430 },
-            { name: "Decha", x: 144, y: 368 }
+            { name: "Tansanee", x: 279, y: 430 }, 
+            { name: "Decha", x: 144, y: 368 } 
         ];
 
         // Function to update circles based on data
         function updateCircles(data) {
-            const maxMethylosmoline = d3.max(data, d => d.methylosmolineSum);
-
+            const maxChemicalValue = d3.max(data, d => d.chemicalSum);
+            
+            selectedChemical = document.getElementById('chemical-dropdown').value;
+            
             // Create a scale
             const colorScale = d3.scaleLinear()
-                .domain([0, maxMethylosmoline])
+                .domain([0, maxChemicalValue])
                 .range(["#fee5d9 ", "#db1c1c"]);
 
             // Select existing circles and bind the updated data
@@ -158,8 +188,8 @@
             circles
                 .attr("cx", d => d.x)
                 .attr("cy", d => d.y)
-                .attr("r", d => calculateRadius(d.methylosmolineSum))
-                .attr("fill", d => colorScale(d.methylosmolineSum));
+                .attr("r", d => calculateRadius(d.chemicalSum))
+                .attr("fill", d => colorScale(d.chemicalSum));
 
             // Remove circles that don't have corresponding data
             circles.exit().remove();
@@ -168,15 +198,15 @@
             circles.enter().append("circle")
                 .attr("cx", d => d.x)
                 .attr("cy", d => d.y)
-                .attr("r", d => calculateRadius(d.methylosmolineSum))
-                .attr("fill", d => colorScale(d.methylosmolineSum))
+                .attr("r", d => calculateRadius(d.chemicalSum))
+                .attr("fill", d => colorScale(d.chemicalSum))
                 .attr("fill-opacity", 100)
                 .on("mouseover", function (event, d) {
                     const [X, Y] = d3.pointer(event);
                     const tooltip = svg.append("g").attr("class", "tooltip");
 
                     // Tooltip positioning
-                    const text = `${d.name}: Methylosmoline Sum : ${d.methylosmolineSum.toFixed(3)}`;
+                    const text = `${d.name}: Chemical Sum (${selectedChemical}): ${d.chemicalSum.toFixed(3)}`;
                     const textWidth = text.length * 6;
                     const tooltipWidth = textWidth + 30;
                     const tooltipHeight = 30;
@@ -204,7 +234,7 @@
 
             // Creating a dynamic legend
             const legendTicks = 10;
-            const legendData = Array.from({ length: legendTicks + 1 }, (_, i) => (maxMethylosmoline / legendTicks) * i);
+            const legendData = Array.from({ length: legendTicks + 1 }, (_, i) => (maxChemicalValue / legendTicks) * i);
 
             legend.selectAll("div.legendValue").remove();
 
@@ -227,94 +257,108 @@
                 .style("display", "inline-block");
         }
 
-            // Calculate the radius based on the Methylosmoline sum
-            function calculateRadius(methylosmolineSum) {
-                    const scaleFactor = 0.9;
-                    return Math.sqrt(methylosmolineSum) * scaleFactor;
-             }
+        // Calculate the radius based on the chemical sum
+        function calculateRadius(chemicalSum) {
+                const scaleFactor = 0.9;
+                return Math.sqrt(chemicalSum) * scaleFactor;
+        }
 
-            const csvFileName = "./Cleaned-Boonsong-Lekagul-waterways-readings.csv";
+        const csvFileName = "./Cleaned-Boonsong-Lekagul-waterways-readings.csv";
 
-            // Load data from CSV file
-            d3.csv(csvFileName).then(function (data) {
-                const methylosmolineDates = data
-                    .filter(d => d.measure === "Methylosmoline")
+        // Load data from CSV file
+        d3.csv(csvFileName).then(function (data) {
+            // Function to update the visualization based on the selected chemical and date
+            function updateVisualization() {
+                d3.select('div#slider-time').html('');
+                const selectedChemical = document.getElementById('chemical-dropdown').value;
+                const chemicalDates = data
+                    .filter(d => d.measure === selectedChemical)
                     .map(d => new Date(d['sample date']));
-                let currentDate = new Date(d3.min(methylosmolineDates));
+                let currentDate = new Date(d3.min(chemicalDates));
 
-            function filterDataByDate(date) {
-                return fixedLocations.map(location => {
-                    const correspondingData = data.filter(d => d.location === location.name && new Date(d['sample date']) <= date && d.measure === "Methylosmoline");
-                    const methylosmolineSum = correspondingData.reduce((sum, d) => sum + parseFloat(d.value), 0);
-                    return {
-                        ...location,
-                        methylosmolineSum
-                    };
-                });
-            }
+                //Update cirlces based on the filtered data for the initial date
+                updateCircles(filterDataByDate(currentDate, selectedChemical));
 
-            // Update circles based on the Methylosmoline data for the initial date
-            updateCircles(filterDataByDate(currentDate));
+                // Slide configuration
+                const sliderTime = d3
+                    .sliderBottom()
+                    .min(d3.min(chemicalDates))
+                    .max(d3.max(chemicalDates))
+                    .width(500)
+                    .tickFormat(d3.timeFormat('%b %Y'))
+                    .ticks(10)
+                    .default(currentDate)
+                    .on('onchange', val => {
+                        currentDate = new Date(val);
+                        currentDate.setDate(1);
+                        updateCircles(filterDataByDate(currentDate, selectedChemical));
 
-            // Slider configuration
-            const sliderTime = d3
-                .sliderBottom()
-                .min(d3.min(methylosmolineDates))
-                .max(d3.max(methylosmolineDates))
-                .width(500)
-                .tickFormat(d3.timeFormat('%b %Y'))
-                .ticks(10)
-                .default(currentDate)
-                .on('onchange', val => {
-                    currentDate = new Date(val);
-                    currentDate.setDate(1);
-                    updateCircles(filterDataByDate(currentDate));
+                        // Update the label under the map when manually moving the slider
+                        document.getElementById('date-display').textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate);
+                    });
 
-                // Update the label under the map when manually moving the slider
-                document.getElementById('date-display').textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate);
-                });
+                const gTime = d3
+                    .select('div#slider-time')
+                    .append('svg')  // Use append('svg') to create a new svg element
+                    .attr('width', 600)
+                    .attr('height', 100)
+                    .append('g')
+                    .attr('transform', 'translate(30,30)');
 
-            const gTime = d3
-                .select('div#slider-time')
-                .append('svg')
-                .attr('width', 600)
-                .attr('height', 100)
-                .append('g')
-                .attr('transform', 'translate(30,30)');
+                gTime.call(sliderTime);
 
-            gTime.call(sliderTime);
-
-              // Functionality for the play button
+                // Functionality for the play button
                 const playButton = d3.select("#play-button");
                 let playing = false;
                 let interval;
 
-              playButton.on("click", () => {
-                  playing = !playing;
+                playButton.on("click", () => {
+                    playing = !playing;
 
-            if (playing) {
-                playButton.text("Pause");
-                interval = setInterval(() => {
-                    currentDate.setMonth(currentDate.getMonth() + 1);
-                    currentDate.setDate(1);
+                    if (playing) {
+                        playButton.text("Pause");
+                        interval = setInterval(() => {
+                            currentDate.setMonth(currentDate.getMonth() + 1);
+                            currentDate.setDate(1);
 
-                if (currentDate > d3.max(methylosmolineDates)) {
-                    playing = false;
-                    clearInterval(interval);
-                    playButton.text("Play");
-                }
+                            if (currentDate > d3.max(chemicalDates)) {
+                                playing = false;
+                                clearInterval(interval);
+                                playButton.text("Play");
+                            }
 
-                sliderTime.value(currentDate);
-                updateCircles(filterDataByDate(currentDate));
-                document.getElementById('date-display').textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate);
-            }, 500);
-        } else {
-            clearInterval(interval);
-            playButton.text("Play");
-        }
-    });
+                            sliderTime.value(currentDate);
+                            updateCircles(filterDataByDate(currentDate, selectedChemical));
+                            document.getElementById('date-display').textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate);
+                        }, 500);
+                    } else {
+                        clearInterval(interval);
+                        playButton.text("Play");
+                    }
+                });
+            }
 
+            // Listen for changes in the chemical dropdown
+            document.getElementById('chemical-dropdown').addEventListener('change', function () {
+                // Update the visualization when the selected chemical changes
+                updateVisualization();
+            });
+
+            // Call updateVisualization function to initialize visualization
+            updateVisualization();
+
+            //Function to filter data by date and selected chemical
+            function filterDataByDate(date, selectedChemical) {
+                return fixedLocations.map(location => {
+                    const correspondingData = data.filter(d => d.location === location.name && new Date(d['sample date']) <= date && d.measure === selectedChemical);
+                    const chemicalSum = correspondingData.reduce((sum, d) => sum + parseFloat(d.value), 0);
+                    return {
+                        ...location,
+                        chemicalSum
+                    };
+                });
+            }
         });
+        
     </script>
 </body>
-
