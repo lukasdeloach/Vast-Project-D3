@@ -25,8 +25,7 @@
             font-size: 20px;
             font-weight: medium;
             margin-bottom: 15px;
-            text-align: center; 
-            /* Center the text */
+            text-align: center; /* Center the text */
         }
 
         svg {
@@ -73,25 +72,21 @@
         
         .legendValue span {
             display: inline-block;
-            margin-right: 15px; 
-            /* Adjust the margin to add spacing between value and color */
+            margin-right: 15px; /* Adjust the margin to add spacing between value and color */
         }
         
         #slider-play-container {
             display: flex;
             flex-direction: row;
             align-items: center;
-            margin-top: 15px; 
-            /* Adjust the top margin as needed */
-            margin-bottom: 10px; 
-            /* Adjust the bottom margin as needed */
+            margin-top: 15px; /* Adjust the top margin as needed */
+            margin-bottom: 10px; /* Adjust the bottom margin as needed */
         }
 
         #slider-time {
             flex-grow: 1;
             width: 70%;
-            margin: 0 auto; 
-            /* Center the slider */
+            margin: 0 auto; /* Center the slider */
         }
 
         #play-button {
@@ -139,6 +134,9 @@
             <option value = "Methylosmoline">Methylosmoline</option>
             <option value = "Iron">Iron</option>
             <option value = "Arsenic">Arsenic</option>
+            <option value = "Anionic Active Surfactants">Anionic Active Surfactants</option>
+            <option value = "Ammonium">Ammonium</option>
+            <option value = "Lead">Lead</option>
         </select>
     </div>
 
@@ -164,11 +162,11 @@
             { name: "Busarakhan", x: 574, y: 248 },
             { name: "Chai", x: 485, y: 291 },
             { name: "Kannika", x: 519, y: 455 },
-            { name: "Achara", x: 357, y: 220 }, //update later
+            { name: "Achara", x: 345, y: 190 }, //update later
             { name: "Somchair", x: 283, y: 276 },
             { name: "Sakda", x: 429, y: 563 },
-            { name: "Tansanee", x: 305, y: 420 }, //update later
-            { name: "Decha", x: 200, y: 365 } //update later
+            { name: "Tansanee", x: 279, y: 430 }, //update later
+            { name: "Decha", x: 144, y: 368 } //update later
         ];
 
         // Function to update circles based on data
@@ -206,7 +204,7 @@
                     const tooltip = svg.append("g").attr("class", "tooltip");
 
                     // Tooltip positioning
-                    const text = `${d.name}: Methylosmoline Sum : ${d.chemicalSum.toFixed(3)}`;
+                    const text = `${d.name}: Chemical Sum : ${d.chemicalSum.toFixed(3)}`;
                     const textWidth = text.length * 6;
                     const tooltipWidth = textWidth + 30;
                     const tooltipHeight = 30;
@@ -257,7 +255,7 @@
                 .style("display", "inline-block");
         }
 
-        // Calculate the radius based on the Methylosmoline sum
+        // Calculate the radius based on the chemical sum
         function calculateRadius(chemicalSum) {
                 const scaleFactor = 0.9;
                 return Math.sqrt(chemicalSum) * scaleFactor;
@@ -276,7 +274,7 @@
                     .map(d => new Date(d['sample date']));
                 let currentDate = new Date(d3.min(chemicalDates));
 
-                //Update cirlces based on the filtered data for the initial daate
+                //Update cirlces based on the filtered data for the initial date
                 updateCircles(filterDataByDate(currentDate, selectedChemical));
 
                 // Slide configuration
@@ -340,7 +338,7 @@
 
             // Listen for changes in the chemical dropdown
             document.getElementById('chemical-dropdown').addEventListener('change', function () {
-                // Update the visualization when the selected chemicala changes
+                // Update the visualization when the selected chemical changes
                 updateVisualization();
             });
 
